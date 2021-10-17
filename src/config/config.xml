@@ -1,2 +1,33 @@
-<NWindows>8</NWindows>
-<MEM_LAT>2</MEM_LAT>
+<ELF>
+	<Disassembler>/home/rajshekar/softwares/bcc-2.2.0-gcc/bin/sparc-gaisler-elf-objdump</Disassembler>
+</ELF>
+<Processor>
+	<NWindows>8</NWindows>
+	<JmplLatency>3</JmplLatency><!-- TODO to implement control interlocks more accurately -->
+	<MulLatency>2</MulLatency>
+	<MulReciprocalOfThroughput>1</MulReciprocalOfThroughput><!-- TODO implement pipelined FUs -->
+	<DivLatency>35</DivLatency>
+	<TakenTrap>5</TakenTrap><!-- TODO -->
+	<L1iCache>
+		<LineSize>32</LineSize>
+		<SingleLoadLatency>1</SingleLoadLatency>
+		<DoubleLoadLatency>2</DoubleLoadLatency>
+		<SingleStoreLatency>2</SingleStoreLatency>
+		<DoubleStoreLatency>3</DoubleStoreLatency>
+		<AtomicLatency>3</AtomicLatency>
+	</L1iCache>
+	<L1dCache>
+		<LineSize>32</LineSize>
+		<SingleLoadLatency>1</SingleLoadLatency>
+		<DoubleLoadLatency>2</DoubleLoadLatency>
+		<SingleStoreLatency>2</SingleStoreLatency>
+		<DoubleStoreLatency>3</DoubleStoreLatency>
+		<AtomicLatency>3</AtomicLatency>
+	</L1dCache>
+</Processor>
+
+<Memory>
+	<Model>Simple</Model> <!-- Simple, File -->
+	<MemoryFile>NULL</MemoryFile> <!-- to be set when the Memory Model is File -->
+	<Latency>3</Latency>
+</Memory>

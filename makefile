@@ -32,7 +32,7 @@ LDFLAGS += -lelf
 
 .PHONY: all clean
 
-all: leon3-sim tags
+all: leon3-sim
 
 tags: 
 	ctags -R *
