@@ -13,8 +13,14 @@ class instruction
 
         bool isControlTransferInstruction();
         bool isConditionalControlTransferInstruction();
-        bool isConditionCodeWriter();
-        bool isCWPModifyingInstruction();
+        bool isICCWritingInstruction();
+        bool isCWPWritingInstruction();
+        bool isYWritingInstruction();
+        bool isYReadingInstruction();
+        bool isASRWritingInstruction();
+        bool isASRReadingInstruction();
+        bool isWIMWritingInstruction();
+        bool isWIMReadingInstruction();
 };
 
 #endif

@@ -1273,48 +1273,63 @@ int executeStage::ReadStateRegisterInstructions(registerAccessStageexecuteStageM
     }
     else if(op3==40 && regRS1!=0){
         //RDASR AND STBAR
+    	if (e_msg->l_PSR_S==0){
+			cout << "privileged_instruction exception" << endl;
+			return privileged_instruction;
+    	}
+
         int get_Val = e_msg->l_ASR;
 
         m_msg->rw_RD = regRD;
         m_msg->rw_RD_val = get_Val;
         m_msg->rw_isIntReg = true;
     }
-    else if(op3==41 && e_msg->l_PSR_S==1){
+    else if(op3==41){
         //RDPSR
+    	if (e_msg->l_PSR_S==0){
+			cout << "privileged_instruction exception" << endl;
+			return privileged_instruction;
+    	}
+
         int get_Val = e_msg->l_PSR;
 
-
-
         m_msg->rw_RD = regRD;
         m_msg->rw_RD_val = get_Val;
         m_msg->rw_isIntReg = true;
     }
-    else if(op3==42 && e_msg->l_PSR_S==1){
+    else if(op3==42){
         //RDWIM
+    	if (e_msg->l_PSR_S==0){
+			cout << "privileged_instruction exception" << endl;
+			return privileged_instruction;
+    	}
+
         int get_Val = e_msg->l_WIM;
 
-
         m_msg->rw_RD = regRD;
         m_msg->rw_RD_val = get_Val;
         m_msg->rw_isIntReg = true;
     }
-    else if(op3==43 && e_msg->l_PSR_S==1){
+    else if(op3==43){
         //RDTBR
+    	if (e_msg->l_PSR_S==0){
+			cout << "privileged_instruction exception" << endl;
+			return privileged_instruction;
+    	}
+
         int get_Val = e_msg->l_TBR;
 
         m_msg->rw_RD = regRD;
         m_msg->rw_RD_val = get_Val;
         m_msg->rw_isIntReg = true;
     }
-    else{
-        cout <<" Priviledged instruction trap " << endl;
-        return privileged_instruction;
-    }
+
     return RET_SUCCESS;
 }
 
 int executeStage::WriteStateRegisterInstructions(registerAccessStageexecuteStageMessage* e_msg, executeStagememoryStageMessage* m_msg)
 {
+	//TODO delayed writes. see Section B.29 of the sparcv8 specification.
     regType imm_or_reg, regRS1, regRD;
     regRD = e_msg->getEInst()->rd;
     regRS1 = e_msg->l_regRS1;
@@ -1328,19 +1343,22 @@ int executeStage::WriteStateRegisterInstructions(registerAccessStageexecuteStage
     }
     if(e_msg->getEInst()->op3==48 && regRD!=0){
         //WRASR
+    	if (e_msg->l_PSR_S==0){
+			cout << "privileged_instruction exception" << endl;
+			return privileged_instruction;
+    	}
         set_Val=(imm_or_reg^regRS1);
 
         m_msg->rw_RD = regRD; /// checked no overlap with Int Regs
         m_msg->rw_RD_val = set_Val;
         m_msg->rw_isASR = true;
-
     }
-    else if (e_msg->l_PSR_S==0){
-        cout << "privileged_instruction" << endl;
-        return privileged_instruction;
-    }
-    if(e_msg->getEInst()->op3==49 && e_msg->l_PSR_S==1){
+    if(e_msg->getEInst()->op3==49){
         //WRPSR
+    	if (e_msg->l_PSR_S==0){
+			cout << "privileged_instruction exception" << endl;
+			return privileged_instruction;
+    	}
         set_Val=(imm_or_reg^regRS1);
         int tmp = (set_Val & 0x0000001F);
 
@@ -1351,8 +1369,12 @@ int executeStage::WriteStateRegisterInstructions(registerAccessStageexecuteStage
         m_msg->rw_PSR = set_Val;
         m_msg->rw_isPSR = true;
     }
-    if(e_msg->getEInst()->op3==50 && e_msg->l_PSR_S==1){
+    if(e_msg->getEInst()->op3==50){
         //WRWIM
+    	if (e_msg->l_PSR_S==0){
+			cout << "privileged_instruction exception" << endl;
+			return privileged_instruction;
+    	}
 
         set_Val=(imm_or_reg^regRS1);
         if(verbose == 2)
@@ -1363,8 +1385,12 @@ int executeStage::WriteStateRegisterInstructions(registerAccessStageexecuteStage
         m_msg->rw_WIM = set_Val;
         m_msg->rw_isWIM = true;
     }
-    if(e_msg->getEInst()->op3==51 && e_msg->l_PSR_S==1){
+    if(e_msg->getEInst()->op3==51){
         //WRTBR
+    	if (e_msg->l_PSR_S==0){
+			cout << "privileged_instruction exception" << endl;
+			return privileged_instruction;
+    	}
         set_Val=(imm_or_reg^regRS1);
         m_msg->rw_TBR = set_Val;
         m_msg->rw_isTBR = true;

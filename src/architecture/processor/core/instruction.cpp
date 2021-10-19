@@ -26,7 +26,8 @@ bool instruction::isControlTransferInstruction()
 
 bool instruction::isConditionalControlTransferInstruction()
 {
-	if(op == 0 && ((cond >= 1 && cond <= 7) || (cond >= 9 && cond <= 15)))
+	if((/*Bicc*/op == 0 && ((cond >= 1 && cond <= 7) || (cond >= 9 && cond <= 15)))
+			|| (/*Ticc*/op == 2 && op3 == 58 && (((rd & 0xf) >= 1 && (rd & 0xf) <= 7) || ((rd & 0xf) >= 9 && (rd & 0xf) <= 15))))
 	{
 		return true;
 	}
@@ -36,9 +37,9 @@ bool instruction::isConditionalControlTransferInstruction()
 	}
 }
 
-bool instruction::isConditionCodeWriter()
+bool instruction::isICCWritingInstruction()
 {
-	if(op == 2
+	if((op == 2
 			&& (/*logical*/op3 == 17 || op3 == 21 || op3 == 18 || op3 == 22 || op3 == 19 || op3 == 23
 					/*add*/ || op3 == 16 || op3 == 24
 					/*tagged add*/ || op3 == 32 || op3 == 34
@@ -47,6 +48,7 @@ bool instruction::isConditionCodeWriter()
 					/*multiply step*/ || op3 == 36
 					/*multiply*/ || op3 == 26 || op3 == 27
 					/*divide*/ || op3 == 30 || op3 == 31))
+			|| (/*WRPSR*/op == 2 && op3 == 49))
 	{
 		return true;
 	}
@@ -54,7 +56,7 @@ bool instruction::isConditionCodeWriter()
 	return false;
 }
 
-bool instruction::isCWPModifyingInstruction()
+bool instruction::isCWPWritingInstruction()
 {
 	 if((/*save and restore*/op == 2 && (op3 == 60 || op3 == 61)) || (/*RETT*/op == 2 && op3 == 57))
 	 {
@@ -62,4 +64,66 @@ bool instruction::isCWPModifyingInstruction()
 	 }
 
 	 return false;
+}
+
+bool instruction::isYWritingInstruction()
+{
+	if((op == 2
+			&& (/*UMUL*/op3 == 10 || /*SMUL*/op3 == 11 || /*UMULcc*/op3 == 26 || /*SMULcc*/op3 == 27 || /*MULScc*/op3 == 36 || (/*WRY*/op3 == 48 && rs1 == 0))))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool instruction::isYReadingInstruction()
+{
+	if((op == 2
+			&& (/*UDIV*/op3 == 14 || /*SDIV*/op3 == 15 || /*UDIVcc*/op3 == 30 || /*SDIVcc*/op3 == 31 || /*MULScc*/op3 == 36 || (/*RDY*/op3 == 40 && rs1 == 0))))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool instruction::isASRWritingInstruction()
+{
+	if(/*WRASR*/op == 2 && op3 == 48 && rs1 != 0)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool instruction::isASRReadingInstruction()
+{
+	if(/*RDASR*/op == 2 && op3 == 40 && rs1 != 0)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool instruction::isWIMWritingInstruction()
+{
+	if(/*WRWIM*/op == 2 && op3 == 50)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool instruction::isWIMReadingInstruction()
+{
+	if(/*RDWIM*/op == 2 && op3 == 42)
+	{
+		return true;
+	}
+
+	return false;
 }

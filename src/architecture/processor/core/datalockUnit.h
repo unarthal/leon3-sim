@@ -18,9 +18,12 @@ private:
 	interface* m_memoryStage_exceptionStage_interface;
 	interface* m_exceptionStage_writebackStage_interface;
 
-	bool isRAWHazard(int x_sourceReg);
+	bool isRAWHazard_GeneralPurpose(int x_sourceReg);
 	bool anyWriterToConditionCodes();
-	bool anyCWPModifyingInstruction();
+	bool anyCWPWritingInstruction();
+	bool anyYWritingInstruction();
+	bool anyASRWritingInstruction();
+	bool anyWIMWritingInstruction();
 
 public:
 	datalockUnit(core* x_containingCore);
