@@ -19,6 +19,8 @@ fetchStage::fetchStage(core* x_containingCore) : element()
 	m_fetchStage_decodeStage_interface = 0;
 	m_decodeStage = m_containingCore->getDecodeStage();
 	m_hasTrapOccurred = false;
+	m_PCwaitingFor = 0xffffffff;
+	m_mainEndAddressReached = false;
 }
 
 fetchStage::~fetchStage()
@@ -55,8 +57,13 @@ void fetchStage::simulateOneCycle()
 		memorymessage* m_msg = (memorymessage*) (memory_processor_interface->popElementsPendingMessage(this));
 		//std::cout << dec << "[" << getClock() << "] IF RESP : " << m_msg->getMemoryMessageType() << " : " << hex << m_msg->getAddress() << dec << "\n";
 
-		fetchStagedecodeStageMessage* d_msg = new fetchStagedecodeStageMessage(this, m_decodeStage, m_msg->getValue(), m_msg->getAddress());
-		m_fetchStage_decodeStage_interface->addPendingMessage(d_msg);
+		if(m_msg->getAddress() == m_PCwaitingFor)
+		{
+			/*this instruction has not been annulled*/
+			fetchStagedecodeStageMessage* d_msg = new fetchStagedecodeStageMessage(this, m_decodeStage, m_msg->getValue(), m_msg->getAddress());
+			m_fetchStage_decodeStage_interface->addPendingMessage(d_msg);
+			m_PCwaitingFor = 0xffffffff;
+		}
 
 		delete m_msg; //remember to delete messages and events once their work is done!
 	}
@@ -72,34 +79,49 @@ void fetchStage::simulateOneCycle()
 			&& m_containingCore->getControlLockUnit()->anyControlHazard() == false)
 	{
 		addrType PC = m_containingCore->getRegisterFile()->getPC();
-		if(PC == getMainEndAddress())
+
+		if(m_mainEndAddressReached == false)
 		{
-			setSimulationDone(true);
-			if(verbose != 0)
+			if (is_mem_address_not_aligned(PC, WORD_ALIGN))
 			{
-				m_containingCore->getRegisterFile()->dumpRegisterFile();
-				m_containingCore->getContainingProcessor()->getAttachedMemory()->dumpMemory(0xfffffed0, 0xfffffffe);
+				cout << ("memory address not word aligned") << endl;
+				//returnValue = mem_address_not_aligned;
 			}
+			memorymessage* msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Read, PC, 4, 0); //TODO depending upon the level of implementation detail, the message contents would vary. how to elegantly code this?
+			processor_memory_interface->addPendingMessage(msg);
+			m_PCwaitingFor = PC;
+
+			addrType nPC = m_containingCore->getRegisterFile()->getnPC();
+			m_containingCore->getRegisterFile()->setPC(nPC);
+			m_containingCore->getRegisterFile()->setnPC(nPC+4);
+			//std::cout << dec << "[" << getClock() << "] IF ISSUE: " << msg->getMemoryMessageType() << " : " << hex << msg->getAddress() << dec << "\n";
 		}
 
-		if (is_mem_address_not_aligned(PC, WORD_ALIGN))
+		if(m_mainEndAddressReached == false && PC == getMainEndAddress())
 		{
-			cout << ("memory address not word aligned") << endl;
-			//returnValue = mem_address_not_aligned;
+			m_mainEndAddressReached = true;
 		}
-		memorymessage* msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Read, PC, 4, 0); //TODO depending upon the level of implementation detail, the message contents would vary. how to elegantly code this?
-		processor_memory_interface->addPendingMessage(msg);
-
-		addrType nPC = m_containingCore->getRegisterFile()->getnPC();
-		m_containingCore->getRegisterFile()->setPC(nPC);
-		m_containingCore->getRegisterFile()->setnPC(nPC+4);
-		//std::cout << dec << "[" << getClock() << "] IF ISSUE: " << msg->getMemoryMessageType() << " : " << hex << msg->getAddress() << dec << "\n";
 	}
 }
 
 void fetchStage::setHasTrapOccurred()
 {
 	m_hasTrapOccurred = true;
+}
+
+addrType fetchStage::getPCWaitingFor()
+{
+	return m_PCwaitingFor;
+}
+
+void fetchStage::setPCWaitingFor(addrType x_PCwaitingFor)
+{
+	m_PCwaitingFor = x_PCwaitingFor;
+}
+
+bool fetchStage::isMainEndAddressReached()
+{
+	return m_mainEndAddressReached;
 }
 
 std::string* fetchStage::getStatistics()

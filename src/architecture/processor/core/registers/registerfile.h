@@ -77,6 +77,7 @@ class registerfile : public element{
         int getASRRegister(int);
         
         void dumpRegisterFile();
+        void miniDumpRegisterFile(int* regIndices, int regIndicesLength);
 
         void simulateOneCycle(){}
         std::string* getStatistics();

@@ -40,6 +40,8 @@ private:
 	interface* m_memoryStage_exceptionStage_interface;
 	interface* m_exceptionStage_writebackStage_interface;
 
+	bool allLatchesEmpty();
+
 public:
 	core(processor* x_containingProcessor, int x_numberOfRegisterWindows);
 	~core();

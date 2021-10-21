@@ -33,7 +33,7 @@ void createDump(string configFilePath, string executablePath){
 	}
 }
 
-void findStartAndEndOfTextSegment(){
+void findStartAndEndOfMainFunction(){
 
 	ifstream l_file;
     l_file.open("dump");
@@ -61,7 +61,7 @@ void findStartAndEndOfTextSegment(){
     }
     l_count = 1 - l_count;
 
-    main_end_addr=convertHexToInt(l_identify_main[l_count])-8;//skipping the retl and nop
+    main_end_addr=convertHexToInt(l_identify_main[l_count])-12;//skipping the retl and nop
 
     l_file.close();
 
@@ -243,7 +243,7 @@ void initializeMemory(string confileFilePath, string executablePath, memory *mem
 	cout << hex << "\n[BEGIN] initializing memory" << endl;
 
 	createDump(confileFilePath, executablePath);
-	findStartAndEndOfTextSegment();
+	findStartAndEndOfMainFunction();
 	load_sparc_instructions(executablePath, mem);
 	deleteDump();
 

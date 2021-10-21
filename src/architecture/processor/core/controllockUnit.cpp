@@ -92,6 +92,11 @@ void controllockUnit::performAnnulment(addrType x_PC_to_be_annuled)
 	{
 		m_fetchStage_decodeStage_interface->popElementsPendingMessage(m_containingCore->getDecodeStage());
 	}
+
+	if(m_containingCore->getFetchStage()->getPCWaitingFor() == x_PC_to_be_annuled)
+	{
+		m_containingCore->getFetchStage()->setPCWaitingFor(0xffffffff);
+	}
 }
 
 core* controllockUnit::getContainingCore()

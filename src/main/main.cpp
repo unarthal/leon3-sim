@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
             	checkFilePath(optarg, ios::out);
             	statisticsFilePath = optarg;
                 break; 
+                //TODO command-line option to print end system state to a file
             case ':': 
                 cout<< opt <<"option needs a value\n"; 
                 break; 
@@ -92,8 +93,8 @@ int main(int argc, char* argv[])
     if(stdoutfile.is_open())
     {
     	stdoutfile.close();
-    	std::cout.rdbuf(coutbuf);
-    	std::cout.rdbuf(cerrbuf);
+    	//std::cout.rdbuf(coutbuf);
+    	//std::cout.rdbuf(cerrbuf);
     }
     return 0;
 

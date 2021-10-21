@@ -14,12 +14,17 @@ private:
 	interface* m_fetchStage_decodeStage_interface;
 	decodeStage* m_decodeStage;
 	bool m_hasTrapOccurred;
+	addrType m_PCwaitingFor;
+	bool m_mainEndAddressReached;
 
 public:
 	fetchStage(core* x_containingCore);
 	~fetchStage();
 	void simulateOneCycle();
 	void setHasTrapOccurred();
+	addrType getPCWaitingFor();
+	bool isMainEndAddressReached();
+	void setPCWaitingFor(addrType x_PCwaitingFor);
 	std::string* getStatistics();
 	core* getContainingCore();
 	void setFetchDecodeInterface(interface* x_fetchStage_decodeStage_interface);

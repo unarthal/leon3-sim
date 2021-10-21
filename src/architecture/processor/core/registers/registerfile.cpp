@@ -281,6 +281,39 @@ void registerfile::dumpRegisterFile()
 	cout << "\n[END] register file dump" << dec << endl;
 }
 
+void registerfile::miniDumpRegisterFile(int* regIndices, int regIndicesLength)
+{
+	cout << hex << "WIM: " << SRegisters->wim << "\tY: " << SRegisters->y << "\tCWP: " << SRegisters->psr->getCwp() << "\tC: " << SRegisters->psr->getC() << "\tN: " << SRegisters->psr->getN() << "\tV: " << SRegisters->psr->getV() << "\tZ: " << SRegisters->psr->getZ() << "\t";
+	cout << "PC: "<< SRegisters->pc << "\tNext PC: " << SRegisters->npc << "\t";
+	for(int i = 0; i < regIndicesLength; i++)
+	{
+		if(regIndices[i] >= 0 && regIndices[i] <= 7)
+		{
+			cout << "\tg" << regIndices[i] << ": " << *(SRegisters->globalRegisters+regIndices[i]);
+		}
+
+		if(regIndices[i] >= 8 && regIndices[i] <= 15)
+		{
+			cout << "\to" << (regIndices[i]-8) << ": " << *(SRegisters->registerSet+SRegisters->psr->getCwp()*16+(regIndices[i]-8));
+		}
+
+		if(regIndices[i] >= 16 && regIndices[i] <= 23)
+		{
+			cout << "\tl" << (regIndices[i]-16) << ": " << *(SRegisters->registerSet+SRegisters->psr->getCwp()*16+(regIndices[i]-8));
+		}
+
+		if(regIndices[i] >= 24 && regIndices[i] <= 31)
+		{
+			cout << "\ti" << (regIndices[i]-24) << ": ";
+			if(SRegisters->psr->getCwp()==SRegisters->totalRegisterWindows-1){
+				cout<< *(SRegisters->registerSet+(regIndices[i]-8));
+			}
+			else cout<< *(SRegisters->registerSet+SRegisters->psr->getCwp()*16+regIndices[i]+16);
+		}
+	}
+	cout << dec << endl;
+}
+
 registerfile::~registerfile()
 {
 	delete SRegisters;

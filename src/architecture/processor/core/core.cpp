@@ -96,6 +96,8 @@ void core::simulateOneCycle()
 	if(verbose == 2)
 	{
 		dumpPipelineLatches();
+		//int a[] = {0, 1, 2, 3, 8, 9, 10, 11, 12, 13};
+		//m_sregister->miniDumpRegisterFile(a, 10);
 	}
 
 	bool anyDataHazard = m_datalockUnit->anyDataHazard();
@@ -111,6 +113,36 @@ void core::simulateOneCycle()
 		m_decodeStage->simulateOneCycle();
 		m_fetchStage->simulateOneCycle();
 	}
+
+	if(m_fetchStage->isMainEndAddressReached() && allLatchesEmpty())//TODO currently assuming a single core system
+	{
+		setSimulationDone(true);
+		if(verbose != 0)
+		{
+			m_sregister->dumpRegisterFile();
+			m_containingProcessor->getAttachedMemory()->dumpMemory(0xfffffed0, 0xfffffffe);
+		}
+	}
+}
+
+bool core::allLatchesEmpty()
+{
+	if(m_fetchStage->getPCWaitingFor() != 0xffffffff)
+		return false;
+	if(m_fetchStage_decodeStage_interface->peekElementsPendingMessage(getDecodeStage()) != 0)
+		return false;
+	if(m_decodeStage_registerAccessStage_interface->peekElementsPendingMessage(getRegisterAccessStage()) != 0)
+		return false;
+	if(m_registerAccessStage_executeStage_interface->peekElementsPendingMessage(getExecuteStage()) != 0)
+		return false;
+	if(m_executeStage_memoryStage_interface->peekElementsPendingMessage(getMemoryStage()) != 0)
+		return false;
+	if(m_memoryStage_exceptionStage_interface->peekElementsPendingMessage(getExceptionStage()) != 0)
+		return false;
+	if(m_exceptionStage_writebackStage_interface->peekElementsPendingMessage(getWritebackStage()) != 0)
+		return false;
+
+	return true;
 }
 
 std::string* core::getStatistics()
