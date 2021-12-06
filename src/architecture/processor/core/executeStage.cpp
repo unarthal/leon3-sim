@@ -21,6 +21,7 @@ executeStage::executeStage(core* x_containingCore) : element()
 	m_memoryStage = m_containingCore->getMemoryStage();
 	m_multicycleExecutionInProgress = false;
 	m_hasTrapOccurred = false;
+	m_wimMask = ((1 << m_containingCore->getRegisterFile()->SRegisters->totalRegisterWindows) - 1);
 
 	m_eventQueue = new std::priority_queue<executioncompleteevent*, std::vector<executioncompleteevent*>, eventcompare>();
 	multiplyLatency = 2;//TODO read from config file
@@ -1377,6 +1378,7 @@ int executeStage::WriteStateRegisterInstructions(registerAccessStageexecuteStage
     	}
 
         set_Val=(imm_or_reg^regRS1);
+        set_Val = set_Val & m_wimMask;
         if(verbose == 2)
         {
         	cout << "write wim=" << set_Val << endl;

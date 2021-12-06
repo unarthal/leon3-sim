@@ -22,6 +22,7 @@ private:
 	memoryStage* m_memoryStage;
 	bool m_multicycleExecutionInProgress;
 	bool m_hasTrapOccurred;
+	int m_wimMask;
 
 	std::priority_queue<executioncompleteevent*, std::vector<executioncompleteevent*>, eventcompare>* m_eventQueue;
 	int multiplyLatency;
