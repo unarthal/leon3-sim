@@ -60,6 +60,8 @@ memorymessage::memorymessage(element* x_producer, element* x_consumer, memorymes
 	m_address = x_address;
 	m_noOfBytes = x_noOfBytes;
 	m_value = x_value;
+	m_orgBytes = -1;
+	m_offset = -1;
 }
 
 memorymessage::~memorymessage()
@@ -105,4 +107,34 @@ char* memorymessage::getValue()
 void memorymessage::setValue(char* x_value)
 {
 	m_value = x_value;
+}
+
+int memorymessage::getOffset()
+{
+	return m_offset;
+}
+
+void memorymessage::setOffset(int x_value)
+{
+	m_offset = x_value;
+}
+
+int memorymessage::getOrgNoOfBytes()
+{
+	return m_orgBytes;
+}
+
+void memorymessage::setOrgNoOfBytes(int x_Value)
+{
+	m_orgBytes = x_Value;
+}
+
+addrType memorymessage::getOrgAddress()
+{
+	return org_address;
+}
+
+void memorymessage::setOrgAddress(addrType x_value)
+{
+	org_address = x_value;
 }

@@ -11,7 +11,7 @@
 	<L1iCache>
 		<LineSize>32</LineSize>
 		<SingleLoadLatency>1</SingleLoadLatency>
-		<DoubleLoadLatency>2</DoubleLoadLatency>
+		<DoubleLoadLatency>2</DoubleLoadLatency><!-- TODO to implement heterogeneous latencies for different widths -->
 		<SingleStoreLatency>2</SingleStoreLatency>
 		<DoubleStoreLatency>3</DoubleStoreLatency>
 		<AtomicLatency>3</AtomicLatency>
@@ -24,6 +24,22 @@
 		<DoubleStoreLatency>3</DoubleStoreLatency>
 		<AtomicLatency>3</AtomicLatency>
 	</L1dCache>
+	<iCache>
+		<iCacheSize>320</iCacheSize>
+		<iLineSize>32</iLineSize>
+		<iReplacementPolicy>0</iReplacementPolicy>
+		<iCacheType></iCacheType>
+		<iLatency>2</iLatency>
+		<iSetAssociativity>2</iSetAssociativity>
+	</iCache>
+	<dCache>
+		<dCacheSize>320</dCacheSize>
+		<dLineSize>32</dLineSize>
+		<dReplacementPolicy>0</dReplacementPolicy>
+		<dCacheType></dCacheType>
+		<dLatency>2</dLatency>
+		<dSetAssociativity>2</dSetAssociativity>
+	</dCache>
 </Processor>
 
 <Memory>

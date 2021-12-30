@@ -34,13 +34,12 @@ char* simple_memory::getBytes(addrType x_memoryAddress, int x_numberOfBytes)
 	return value;
 }
 
-void simple_memory::setBytes(addrType x_memoryAddress, int x_numberOfBytes, char* x_value)
+void simple_memory::setBytes(addrType x_memoryAddress, int x_numberOfBytes, char* tempue)
 {
 	for(int i = 0; i < x_numberOfBytes; i++)
 	{
-		m_memoryArray[x_memoryAddress+i] = x_value[i];
+		m_memoryArray[x_memoryAddress+i] = tempue[i];
 	}
-	delete x_value;
 }
 
 void simple_memory::dumpMemory(addrType x_startAddr, addrType x_endAddr)
@@ -48,9 +47,11 @@ void simple_memory::dumpMemory(addrType x_startAddr, addrType x_endAddr)
 	cout << "\n[BEGIN] memory dump" << endl;
 	for(addrType i = x_startAddr; i <= x_endAddr; i++)
 	{
-		cout << hex << i << " : " << (((unsigned int)m_memoryArray[i])&0xff) << dec << endl;
+		cout << hex << i << " : ";
+		printByte(m_memoryArray[i]);
+		cout << endl;
 	}
-	cout << "[END] memory dump" << endl;
+	cout << "[END] memory dump" << endl << endl << dec;
 }
 
 void simple_memory::miniDumpMemory()
@@ -58,9 +59,11 @@ void simple_memory::miniDumpMemory()
 	cout << "\n[BEGIN] memory dump" << endl;
 	for(addrType i = 0xfffffc18; i < 0xfffffeb8; i++)
 	{
-		cout << hex << i << " : " << (((unsigned int)m_memoryArray[i])&0xff) << dec << endl;
+		cout << hex << i << " : " ;
+		printByte(m_memoryArray[i]);
+		cout << endl;
 	}
-	cout << "[END] memory dump" << endl;
+	cout << "[END] memory dump" << endl << endl << dec;
 }
 
 void simple_memory::processEventQueue()
@@ -90,8 +93,20 @@ void simple_memory::processEventQueue()
 
 		case Write:
 			setBytes(addr, noOfBytes, value);
-			evt->getMemoryMessage()->setMemoryMessageType(WriteResponse);
-			evt->getMemoryMessage()->setValue(0);
+			// std::cout<<"mem write "<<addr<<endl;
+			if(noOfBytes<4)
+			{
+				char *temp = new char[4];
+				temp = getBytes(((int)addr/4)*4,4);
+				evt->getMemoryMessage()->setNoOfBytes(4);
+				evt->getMemoryMessage()->setMemoryMessageType(WriteResponse);
+				evt->getMemoryMessage()->setValue(temp);
+			}
+			else
+			{
+				evt->getMemoryMessage()->setMemoryMessageType(WriteResponse);
+				evt->getMemoryMessage()->setValue(value);
+			}
 			pmc_stores++;
 			break;
 
@@ -132,9 +147,9 @@ std::string* simple_memory::getStatistics()
 {
 	string* stats = new string();
 	stats->append("MEMORY\n\n");
-	stats->append("\nnumber of loads = ");
+	stats->append("\nnumber of reads = ");
 	stats->append(std::to_string(getNumberOfLoads()));
-	stats->append("\nnumber of stores = ");
+	stats->append("\nnumber of writes = ");
 	stats->append(std::to_string(getNumberOfStores()));
 	stats->append("\n");
 	return stats;

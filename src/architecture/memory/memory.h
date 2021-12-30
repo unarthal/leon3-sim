@@ -45,6 +45,10 @@ private:
 	addrType m_address;
 	int m_noOfBytes;
 	char* m_value;
+
+	int m_orgBytes;
+	int m_offset;
+	addrType org_address;
 public:
 	memorymessage(element* x_producer, element* x_consumer, memorymessagetype x_messageType, addrType x_address, int x_noOfBytes, char* x_value);
 	~memorymessage();
@@ -56,6 +60,15 @@ public:
 	void setNoOfBytes(int x_noOfBytes);
 	char* getValue();
 	void setValue(char* x_value);
+
+	int getOrgNoOfBytes();
+	void setOrgNoOfBytes(int x_value);
+	int getOffset();
+	void setOffset(int x_value);
+	addrType getOrgAddress();
+	void setOrgAddress(addrType x_value);
+
+
 };
 
 #endif

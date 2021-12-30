@@ -70,4 +70,5 @@ int modifyBits(int snd, int rcv, int l, int r);
 int getBits(int snd, int rcv, int l, int r);
 int signExtendByteToWord(int byte);
 int signExtendHalfWordToWord(int halfword);
+void printByte(int byte);
 #endif

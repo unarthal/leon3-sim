@@ -12,6 +12,8 @@
 #include "elf/elf.h"
 #include "architecture/processor/core/decodeStage.h"
 #include "architecture/processor/core/controllockUnit.h"
+#include "architecture/processor/cache/cache.h"
+
 
 fetchStage::fetchStage(core* x_containingCore) : element()
 {
@@ -31,12 +33,10 @@ fetchStage::~fetchStage()
 extern int verbose;
 void fetchStage::simulateOneCycle()
 {
-	interface* processor_memory_interface = m_containingCore->getContainingProcessor()->getProcessorMemoryInterface();
-	interface* memory_processor_interface = m_containingCore->getContainingProcessor()->getMemoryProcessorInterface();
 
-	if(memory_processor_interface->doesElementHaveAnyPendingMessage(this) == true && m_hasTrapOccurred == true)
+	if(m_icache_fetchStage_interface->doesElementHaveAnyPendingMessage(this) == true && m_hasTrapOccurred == true)
 	{
-		memorymessage* m_msg = (memorymessage*) (memory_processor_interface->peekElementsPendingMessage(this)); //note we peek here. busy is set to true if it is a memory instruction. we pop when the response arrives. busy is set to false then.
+		memorymessage* m_msg = (memorymessage*) (m_icache_fetchStage_interface->peekElementsPendingMessage(this)); //note we peek here. busy is set to true if it is a memory instruction. we pop when the response arrives. busy is set to false then.
 		addrType m_pc = m_msg->getAddress();
 		if(m_pc == m_containingCore->getExceptionStage()->getNewPCAfterTrap())
 		{
@@ -45,18 +45,18 @@ void fetchStage::simulateOneCycle()
 		else
 		{
 			//assuming there can be only one pending message
-			memory_processor_interface->popElementsPendingMessage(this);
+			m_icache_fetchStage_interface->popElementsPendingMessage(this);
 			delete m_msg;
 			return;
 		}
-	}
+	} 
 
-	if(memory_processor_interface->doesElementHaveAnyPendingMessage(this) == true
-			&& m_fetchStage_decodeStage_interface->getBusy() == false)
+	if(m_icache_fetchStage_interface->doesElementHaveAnyPendingMessage(this) == true && 
+		m_fetchStage_decodeStage_interface->getBusy() == false)
 	{
-		memorymessage* m_msg = (memorymessage*) (memory_processor_interface->popElementsPendingMessage(this));
+		memorymessage* m_msg = (memorymessage*) (m_icache_fetchStage_interface->popElementsPendingMessage(this));
 		//std::cout << dec << "[" << getClock() << "] IF RESP : " << m_msg->getMemoryMessageType() << " : " << hex << m_msg->getAddress() << dec << "\n";
-
+		
 		if(m_msg->getAddress() == m_PCwaitingFor)
 		{
 			/*this instruction has not been annulled*/
@@ -64,7 +64,7 @@ void fetchStage::simulateOneCycle()
 			m_fetchStage_decodeStage_interface->addPendingMessage(d_msg);
 			m_PCwaitingFor = 0xffffffff;
 		}
-
+		
 		delete m_msg; //remember to delete messages and events once their work is done!
 	}
 
@@ -74,21 +74,21 @@ void fetchStage::simulateOneCycle()
 //		return;
 //	}
 
-	if(processor_memory_interface->getBusy() == false
-			&& m_fetchStage_decodeStage_interface->getBusy() == false
-			&& m_containingCore->getControlLockUnit()->anyControlHazard() == false)
+	if(m_fetchStage_icache_interface->getBusy() == false 
+		&& m_fetchStage_decodeStage_interface->getBusy() == false
+		&& m_containingCore->getControlLockUnit()->anyControlHazard() == false)
 	{
 		addrType PC = m_containingCore->getRegisterFile()->getPC();
 
 		if(m_mainEndAddressReached == false)
 		{
-			if (is_mem_address_not_aligned(PC, WORD_ALIGN))
+			if(is_mem_address_not_aligned(PC, WORD_ALIGN))
 			{
 				cout << ("memory address not word aligned") << endl;
 				//returnValue = mem_address_not_aligned;
 			}
-			memorymessage* msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Read, PC, 4, 0); //TODO depending upon the level of implementation detail, the message contents would vary. how to elegantly code this?
-			processor_memory_interface->addPendingMessage(msg);
+			memorymessage* msg = new memorymessage(this, m_containingCore->getIcache(), Read, PC, 4, 0);//TODO depending upon the level of implementation detail, the message contents would vary. how to elegantly code this?
+			m_fetchStage_icache_interface->addPendingMessage(msg);
 			m_PCwaitingFor = PC;
 
 			addrType nPC = m_containingCore->getRegisterFile()->getnPC();
@@ -103,6 +103,29 @@ void fetchStage::simulateOneCycle()
 		}
 	}
 }
+
+
+interface* fetchStage::getIcacheFetchStageInterface()
+{
+	return m_icache_fetchStage_interface;
+}
+
+void fetchStage::setIcacheFetchStageInterface(interface* x_icache_fetchstage_interface)
+{
+	m_icache_fetchStage_interface = x_icache_fetchstage_interface;
+}
+
+interface* fetchStage::getFetchStageIcacheInterface()
+{
+	return m_fetchStage_icache_interface;
+}
+
+void fetchStage::setFetchStageIcacheInterface(interface* x_fetchstage_icache_interface)
+{
+	m_fetchStage_icache_interface = x_fetchstage_icache_interface;
+}
+
+
 
 void fetchStage::setHasTrapOccurred()
 {

@@ -14,6 +14,8 @@
 #include "architecture/interface.h"
 #include <iostream>
 #include "architecture/system.h"
+#include "architecture/processor/cache/cache.h"
+#include "config/config.h"
 #include <string>
 
 core::core(processor* x_containingProcessor, int x_numberOfRegisterWindows) : element()
@@ -34,6 +36,60 @@ core::core(processor* x_containingProcessor, int x_numberOfRegisterWindows) : el
 	m_datalockUnit = new datalockUnit(this);
 	m_controllockUnit = new controllockUnit(this);
 
+// I-cache and D-cache
+	m_icache = new cache(this);
+	m_icache->setCacheSize(xmlReader_generalInt("src/config/config.xml","<iCacheSize>","</iCacheSize>"));
+	m_icache->setLineSize(xmlReader_generalInt("src/config/config.xml","<iLineSize>","</iLineSize>"));
+	m_icache->setReplacementPolicy(xmlReader_generalInt("src/config/config.xml","<iReplacementPolicy>","</iReplacementPolicy>"));
+	m_icache->setLatency(xmlReader_generalInt("src/config/config.xml","<iLatency>","</iLatency>"));
+	m_icache->setSetAssociativity(xmlReader_generalInt("src/config/config.xml","<iSetAssociativity>","</iSetAssociativity>"));
+	m_icache->initialiseCache();
+	
+	m_dcache = new cache(this);
+	m_dcache->setCacheSize(xmlReader_generalInt("src/config/config.xml","<dCacheSize>","</dCacheSize>"));
+	m_dcache->setLineSize(xmlReader_generalInt("src/config/config.xml","<dLineSize>","</dLineSize>"));
+	m_dcache->setReplacementPolicy(xmlReader_generalInt("src/config/config.xml","<dReplacementPolicy>","</dReplacementPolicy>"));
+	m_dcache->setLatency(xmlReader_generalInt("src/config/config.xml","<dLatency>","</dLatency>"));
+	m_dcache->setSetAssociativity(xmlReader_generalInt("src/config/config.xml","<dSetAssociativity>","</dSetAssociativity>"));
+	m_dcache->initialiseCache();
+
+
+// I-Cache to fetchStage Interface
+	m_icache_fetchStage_interface = new interface();
+	m_icache->setCacheUpperlevelInterface(m_icache_fetchStage_interface);
+	m_fetchStage->setIcacheFetchStageInterface(m_icache_fetchStage_interface);
+
+// Fetch Stage to I-Cache Interface
+	m_fetchStage_icache_interface = new interface();
+	m_icache->setUpperlevelCacheInterface(m_fetchStage_icache_interface);
+	m_fetchStage->setFetchStageIcacheInterface(m_fetchStage_icache_interface);
+
+// Set I-cache lower-level interface as processor-memory-interface
+	m_icache->setCacheLowerlevelInterface(m_containingProcessor->getProcessorMemoryInterface());
+// Set lower-level I-cache interface as memory-processor-interface
+	m_icache->setLowerlevelCacheInterface(m_containingProcessor->getMemoryProcessorInterface());
+	
+	m_icache->setUpperLevelElement(m_fetchStage);
+	m_icache->setLowerlevelElement(m_containingProcessor->getAttachedMemory());
+
+// D-Cache to memoryStage Interface
+	m_dcache_memoryStage_interface = new interface();
+	m_dcache->setCacheUpperlevelInterface(m_dcache_memoryStage_interface);
+	m_memoryStage->setDcacheMemoryStageInterface(m_dcache_memoryStage_interface);
+
+// Memory stage to D-cache interface
+	m_memoryStage_dcache_interface = new interface();
+	m_dcache->setUpperlevelCacheInterface(m_memoryStage_dcache_interface);
+	m_memoryStage->setMemoryStageDcacheInterface(m_memoryStage_dcache_interface);
+
+// Set D-cache lower-level interface as processor-memory-interface
+	m_dcache->setCacheLowerlevelInterface(m_containingProcessor->getProcessorMemoryInterface());
+// Set lower-level D-cache interface as memory-processor-interface
+	m_dcache->setLowerlevelCacheInterface(m_containingProcessor->getMemoryProcessorInterface());
+
+	m_dcache->setUpperLevelElement(m_memoryStage);
+	m_dcache->setLowerlevelElement(m_containingProcessor->getAttachedMemory());
+	
 	//set up interfaces
 	m_fetchStage_decodeStage_interface = new interface();
 	m_fetchStage->setFetchDecodeInterface(m_fetchStage_decodeStage_interface);
@@ -96,14 +152,16 @@ void core::simulateOneCycle()
 	if(verbose == 2)
 	{
 		dumpPipelineLatches();
-		//int a[] = {0, 1, 2, 3, 8, 9, 10, 11, 12, 13};
-		//m_sregister->miniDumpRegisterFile(a, 10);
+		// int a[] = {1, 2};
+		// m_sregister->miniDumpRegisterFile(a, 2);
 	}
 
 	bool anyDataHazard = m_datalockUnit->anyDataHazard();
+	
 
 	m_writebackStage->simulateOneCycle();
 	m_exceptionStage->simulateOneCycle();
+	m_dcache->simulateOneCycle();
 	m_memoryStage->simulateOneCycle();
 	m_executeStage->simulateOneCycle();
 
@@ -111,6 +169,7 @@ void core::simulateOneCycle()
 	{
 		m_registerAccessStage->simulateOneCycle();
 		m_decodeStage->simulateOneCycle();
+		m_icache->simulateOneCycle();
 		m_fetchStage->simulateOneCycle();
 	}
 
@@ -121,6 +180,9 @@ void core::simulateOneCycle()
 		{
 			m_sregister->dumpRegisterFile();
 			m_containingProcessor->getAttachedMemory()->dumpMemory(0xfffffed0, 0xfffffffe);
+			
+			m_dcache->printCache();
+			m_icache->printCache();
 		}
 	}
 }
@@ -162,6 +224,16 @@ std::string* core::getStatistics()
 	stats->append(std::to_string(m_memoryStage->getNumberOfLoads()));
 	stats->append("\nnumber of stores = ");
 	stats->append(std::to_string(m_memoryStage->getNumberOfStores()));
+	stats->append("\nI-Cache");
+	stats->append("\nnumber of hits = ");
+	stats->append(std::to_string(m_icache->getHits()));
+	stats->append("\nhit ratio = ");
+	stats->append(std::to_string(m_icache->getHitRatio()));
+	stats->append("\nD-Cache");
+	stats->append("\nnumber of hits = ");
+	stats->append(std::to_string(m_dcache->getHits()));
+	stats->append("\nhit ratio = ");
+	stats->append(std::to_string(m_dcache->getHitRatio()));
 	stats->append("\n");
 	return stats;
 }
@@ -214,6 +286,16 @@ registerfile* core::getRegisterFile()
 controllockUnit* core::getControlLockUnit()
 {
 	return m_controllockUnit;
+}
+
+cache* core::getIcache()
+{
+	return m_icache;
+}
+
+cache* core::getDcache()
+{
+	return m_dcache;
 }
 
 void core::dumpPipelineLatches()

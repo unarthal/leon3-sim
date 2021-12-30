@@ -606,3 +606,10 @@ int signExtendHalfWordToWord(int halfword)
 	}
 	return halfword;
 }
+
+void printByte(int byte)
+{
+	if(byte >= 0 and byte <= 0xf)
+		std::cout << "0";
+	std::cout << hex << (byte & 0xff) << dec;
+}

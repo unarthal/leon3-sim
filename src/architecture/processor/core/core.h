@@ -14,12 +14,12 @@ class writebackStage;
 class registerfile;
 class datalockUnit;
 class controllockUnit;
+class cache;
 
 class core: public element
 {
 private:
 	processor* m_containingProcessor;
-
 	fetchStage* m_fetchStage;
 	decodeStage* m_decodeStage;
 	registerAccessStage* m_registerAccessStage;
@@ -27,7 +27,9 @@ private:
 	memoryStage* m_memoryStage;
 	exceptionStage* m_exceptionStage;
 	writebackStage* m_writebackStage;
-
+	cache* m_icache;
+	cache* m_dcache;
+	
 	registerfile *m_sregister;
 
 	datalockUnit* m_datalockUnit;
@@ -39,6 +41,15 @@ private:
 	interface* m_executeStage_memoryStage_interface;
 	interface* m_memoryStage_exceptionStage_interface;
 	interface* m_exceptionStage_writebackStage_interface;
+
+	
+
+	interface* m_icache_fetchStage_interface;
+	interface* m_fetchStage_icache_interface;
+
+	interface* m_dcache_memoryStage_interface;
+	interface* m_memoryStage_dcache_interface;
+
 
 	bool allLatchesEmpty();
 
@@ -62,6 +73,9 @@ public:
 	void dumpDataSegment();
 	void dumpBSSSegment();
 	void dumpStackSegment();
+
+	cache* getIcache();
+	cache* getDcache();
 };
 
 #endif

@@ -26,6 +26,9 @@ private:
 	void processMessageFromExecuteStage();
 	void processMessageFromMemory();
 
+	interface* m_memoryStage_dcache_interface;
+	interface* m_dcache_memoryStage_interface;
+
 public:
 	memoryStage(core* x_containingCore);
 	~memoryStage();
@@ -37,6 +40,11 @@ public:
 	counterType getNumberOfStores();
 	void setExecuteMemoryInterface(interface* x_executeStage_memoryStage_interface);
 	void setMemoryExceptionInterface(interface* x_memoryStage_exceptionStage_interface);
+
+	interface* getMemoryStageDcacheInterface();
+	void setMemoryStageDcacheInterface(interface* x_memoryStage_dcache_interface);
+	interface* getDcacheMemoryStageInterface();
+	void setDcacheMemoryStageInterface(interface* x_dcache_memoryStage_interface);
 };
 
 class memoryStageexceptionStageMessage : public message

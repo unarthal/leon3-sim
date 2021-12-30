@@ -17,6 +17,9 @@ private:
 	addrType m_PCwaitingFor;
 	bool m_mainEndAddressReached;
 
+	interface* m_fetchStage_icache_interface;
+	interface* m_icache_fetchStage_interface;
+
 public:
 	fetchStage(core* x_containingCore);
 	~fetchStage();
@@ -28,6 +31,12 @@ public:
 	std::string* getStatistics();
 	core* getContainingCore();
 	void setFetchDecodeInterface(interface* x_fetchStage_decodeStage_interface);
+	
+	interface* getIcacheFetchStageInterface();
+	void setIcacheFetchStageInterface(interface* x_icache_fetchstage_interface);
+
+	interface* getFetchStageIcacheInterface();
+	void setFetchStageIcacheInterface(interface* x_fetchstage_icache_interface);
 };
 
 class fetchStagedecodeStageMessage : public message

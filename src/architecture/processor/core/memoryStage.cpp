@@ -9,6 +9,7 @@
 #include "architecture/constants_typedefs.h"
 #include "architecture/memory/simple_memory.h" //TODO memoryStage should be oblivious of the type of memory being employed
 #include "architecture/processor/processor.h"
+#include "architecture/processor/cache/cache.h"
 
 using namespace std;
 
@@ -23,6 +24,23 @@ memoryStage::memoryStage(core* x_containingCore) : element()
 
 	pmc_loads = 0;
 	pmc_stores = 0;
+}
+
+interface* memoryStage::getMemoryStageDcacheInterface()
+{
+	return m_memoryStage_dcache_interface;
+}
+void memoryStage::setMemoryStageDcacheInterface(interface* x_memoryStage_dcache_interface)
+{
+	m_memoryStage_dcache_interface = x_memoryStage_dcache_interface;
+}
+interface* memoryStage::getDcacheMemoryStageInterface()
+{
+	return m_dcache_memoryStage_interface;
+}
+void memoryStage::setDcacheMemoryStageInterface(interface* x_dcache_memoryStage_interface)
+{
+	m_dcache_memoryStage_interface =x_dcache_memoryStage_interface;
 }
 
 memoryStage::~memoryStage()
@@ -53,17 +71,15 @@ void memoryStage::simulateOneCycle()
 
 void memoryStage::processMessageFromMemory()
 {
-	interface* memory_processor_interface = m_containingCore->getContainingProcessor()->getMemoryProcessorInterface();
-
-	if(memory_processor_interface->doesElementHaveAnyPendingMessage(this) == true && m_hasTrapOccurred == true)
+	if(m_dcache_memoryStage_interface->doesElementHaveAnyPendingMessage(this) == true && m_hasTrapOccurred == true)
 	{
 		//assuming there can be only one pending message
-		delete (memorymessage*) (memory_processor_interface->popElementsPendingMessage(this));
+		delete (memorymessage*) (m_dcache_memoryStage_interface->popElementsPendingMessage(this));
 		m_waitingForMemoryResponse = false;
 		return;
 	}
 
-	if(memory_processor_interface->doesElementHaveAnyPendingMessage(this) == true
+	if(m_dcache_memoryStage_interface->doesElementHaveAnyPendingMessage(this) == true
 			&& m_memoryStage_exceptionStage_interface->getBusy() == false)
 	{
 		if(m_executeStage_memoryStage_interface->doesElementHaveAnyPendingMessage(this) == false)
@@ -79,7 +95,7 @@ void memoryStage::processMessageFromMemory()
 		}
 		instruction* m_inst = m_msg->getMInst();
 
-		memorymessage* mem_msg = (memorymessage*) (memory_processor_interface->popElementsPendingMessage(this));
+		memorymessage* mem_msg = (memorymessage*) (m_dcache_memoryStage_interface->popElementsPendingMessage(this));
 		//std::cout << dec << "[" << getClock() << "] M RESP : " << mem_msg->getMemoryMessageType() << " : " << hex << mem_msg->getAddress() << dec << "\n";
 
 		memoryStageexceptionStageMessage* x_msg = new memoryStageexceptionStageMessage(this, m_exceptionStage, m_inst, m_msg->getMPC());
@@ -102,7 +118,7 @@ void memoryStage::processMessageFromMemory()
 
 		//note that no endian conversions are performed. values obtained in the big-endian forms
 		//are forwarded to subsequent stages and to the register file.
-
+	
 		if (m_msg->isLoad == true && m_msg->isInt == true )///LoadIntegerInstructions
 		{
 			switch(m_inst->op3)
@@ -244,8 +260,6 @@ void memoryStage::processMessageFromMemory()
 
 void memoryStage::processMessageFromExecuteStage()
 {
-	interface* processor_memory_interface = m_containingCore->getContainingProcessor()->getProcessorMemoryInterface();
-
 	if(m_executeStage_memoryStage_interface->doesElementHaveAnyPendingMessage(this) == true && m_hasTrapOccurred == true)
 	{
 		executeStagememoryStageMessage* m_msg = (executeStagememoryStageMessage*) (m_executeStage_memoryStage_interface->peekElementsPendingMessage(this)); //note we peek here. busy is set to true if it is a memory instruction. we pop when the response arrives. busy is set to false then.
@@ -272,7 +286,7 @@ void memoryStage::processMessageFromExecuteStage()
 		instruction* m_inst = m_msg->getMInst();
 		addrType m_pc = m_msg->getMPC();
 		//std::cout << dec << "[" << getClock() << "] M RECV : " << hex << m_pc << " : " << m_inst->instructionWord << dec << "\n";
-
+		
 		int returnValue = RET_SUCCESS;
 
 		if(m_msg->isMemIns == true)
@@ -286,7 +300,7 @@ void memoryStage::processMessageFromExecuteStage()
 				case 9:
 				case 1:
 					{
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Read, memoryAddress, 1, 0);
+						msg = new memorymessage(this, m_containingCore->getDcache(), Read, memoryAddress, 1, 0);
 						break;
 					}
 				case 10:
@@ -297,7 +311,7 @@ void memoryStage::processMessageFromExecuteStage()
 							cout << ("memory address not half word aligned") << endl;
 							returnValue = mem_address_not_aligned;
 						}
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Read, memoryAddress, 2, 0);
+						msg = new memorymessage(this, m_containingCore->getDcache(), Read, memoryAddress, 2, 0);
 						break;
 					}
 				case 0:
@@ -307,7 +321,7 @@ void memoryStage::processMessageFromExecuteStage()
 							cout << ("memory address not word aligned") << endl;
 							returnValue = mem_address_not_aligned;
 						}
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Read, memoryAddress, 4, 0);
+						msg = new memorymessage(this, m_containingCore->getDcache(), Read, memoryAddress, 4, 0);
 						break;
 					}
 				case 3:
@@ -317,14 +331,14 @@ void memoryStage::processMessageFromExecuteStage()
 							cout << ("memory address not word aligned") << endl;
 							returnValue = mem_address_not_aligned;
 						}
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Read, memoryAddress, 8, 0);//TODO to be split into 2 accesses of 4 bytes each
+						msg = new memorymessage(this, m_containingCore->getDcache(), Read, memoryAddress, 8, 0);//TODO to be split into 2 accesses of 4 bytes each
 						break;
 					}
 				default: showErrorAndExit("[MEMORY stage] unknown integer load instruction");
 				//TODO load from alternate space instructions not implemented
 				}
 
-				processor_memory_interface->addPendingMessage(msg);
+				m_memoryStage_dcache_interface->addPendingMessage(msg);
 				pmc_loads++;
 			}
 
@@ -344,7 +358,7 @@ void memoryStage::processMessageFromExecuteStage()
 				case 5:
 					{
 						char byte = regRD & 0x000000FF;
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Write, memoryAddress, 1, convertLittleEndianIntegerToBigEndianByteArray(byte, 1));
+						msg = new memorymessage(this, m_containingCore->getDcache(), Write, memoryAddress, 1, convertLittleEndianIntegerToBigEndianByteArray(byte, 1));
 						break;
 					}
 				case 6:
@@ -355,7 +369,7 @@ void memoryStage::processMessageFromExecuteStage()
 							returnValue = mem_address_not_aligned;
 						}
 						short halfWord = regRD & 0x0000FFFF;
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Write, memoryAddress, 2, convertLittleEndianIntegerToBigEndianByteArray(halfWord, 2));
+						msg = new memorymessage(this, m_containingCore->getDcache(), Write, memoryAddress, 2, convertLittleEndianIntegerToBigEndianByteArray(halfWord, 2));
 						break;
 					}
 				case 4:
@@ -365,7 +379,7 @@ void memoryStage::processMessageFromExecuteStage()
 							cout << ("memory address not word aligned") << endl;
 							returnValue = mem_address_not_aligned;
 						}
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Write, memoryAddress, 4, convertLittleEndianIntegerToBigEndianByteArray(regRD, 4));
+						msg = new memorymessage(this, m_containingCore->getDcache(), Write, memoryAddress, 4, convertLittleEndianIntegerToBigEndianByteArray(regRD, 4));
 						//cout << hex << "storing value " << regRD << " at " << memoryAddress << dec << endl;
 						break;
 					}
@@ -393,14 +407,14 @@ void memoryStage::processMessageFromExecuteStage()
 							val[i+4] = tmp[i];
 						}
 						delete tmp;
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Write, memoryAddress, 8, val);//TODO to be split into 2 accesses of 4 bytes each
+						msg = new memorymessage(this, m_containingCore->getDcache(), Write, memoryAddress, 8, val);//TODO to be split into 2 accesses of 4 bytes each
 						break;
 					}
 				default: showErrorAndExit("[MEMORY stage] unknown integer store instruction");
 				//TODO load from alternate space instructions not implemented
 				}
 
-				processor_memory_interface->addPendingMessage(msg);
+				m_memoryStage_dcache_interface->addPendingMessage(msg);
 				pmc_stores++;
 			}
 
@@ -420,7 +434,7 @@ void memoryStage::processMessageFromExecuteStage()
 							returnValue = mem_address_not_aligned;
 						}
 
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Write, memoryAddress, 4, convertLittleEndianIntegerToBigEndianByteArray(regRD, 4));
+						msg = new memorymessage(this, m_containingCore->getDcache(), Write, memoryAddress, 4, convertLittleEndianIntegerToBigEndianByteArray(regRD, 4));
 						break;
 					}
 				case 39: //STDF
@@ -450,7 +464,7 @@ void memoryStage::processMessageFromExecuteStage()
 						}
 
 						//TODO largestValueType val = regRD | (largestValueType)regNextRD << 32;
-						//TODO msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Write, memoryAddress, 8, convertLittleEndianIntegerToBigEndianByteArray(val, 8));
+						//TODO msg = new memorymessage(this, m_containingCore->getDcache(), Write, memoryAddress, 8, convertLittleEndianIntegerToBigEndianByteArray(val, 8));
 						break;
 					}
 				case 38: //STDFQ
@@ -472,13 +486,15 @@ void memoryStage::processMessageFromExecuteStage()
 				case 37: //STFSR
 					{
 						int fsr = m_msg->FSR;
-						msg = new memorymessage(this, m_containingCore->getContainingProcessor()->getAttachedMemory(), Write, memoryAddress, 4, convertLittleEndianIntegerToBigEndianByteArray(fsr, 4));
+						msg = new memorymessage(this, m_containingCore->getDcache(), Write, memoryAddress, 4, convertLittleEndianIntegerToBigEndianByteArray(fsr, 4));
 						break;
 					}
 				}
 
 				if(msg != 0)
-					processor_memory_interface->addPendingMessage(msg);
+				{
+					m_memoryStage_dcache_interface->addPendingMessage(msg);
+				}
 			}
 			/* TODO atomic operations
 			else if(m_msg->isAtomic == true)   //// Atomic Operations
